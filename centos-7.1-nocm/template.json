@@ -1,0 +1,81 @@
+{
+    "description": "This builds a CentOS VM for use on AEM Vagrant systems.",
+    "builders": [
+        {
+            "type": "virtualbox-iso",
+            "boot_command": [
+        "<tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.cfg<enter><wait>"
+      ],
+            "boot_wait": "10s",
+            "iso_url": "http://mirrors.usc.edu/pub/linux/distributions/centos/7/isos/x86_64/CentOS-7-x86_64-Minimal-1503-01.iso",
+            "iso_checksum": "7cf1ac8da13f54d6be41e3ccf228dc5bb35792f515642755ff4780d5714d4278",
+            "iso_checksum_type": "sha256",
+            "ssh_username": "vagrant",
+            "ssh_password": "vagrant",
+            "disk_size": 51200,
+            "format": "ovf",
+            "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+            "guest_os_type": "RedHat_64",
+            "headless": true,
+            "http_directory": "http",
+            "output_directory": "pkg",
+            "ssh_port": 22,
+            "ssh_wait_timeout": "10000s",
+            "shutdown_command": "echo '/sbin/halt -h -p' > /tmp/shutdown.sh; echo 'vagrant'|sudo -S sh '/tmp/shutdown.sh'",
+            "vboxmanage": [
+        ["modifyvm", "{{.Name}}", "--memory", "512"],
+        ["modifyvm", "{{.Name}}", "--cpus", "1"]
+      ],
+            "virtualbox_version_file": ".vbox_version"
+    }
+  ],
+    "post-processors": [
+    [
+            {
+                "type": "vagrant",
+                "override": {
+                    "virtualbox": {
+                        "output": "centos-7.1-nocm-aem.box"
+                    }
+                }
+      },
+            {
+                "type": "atlas",
+                "artifact": "{{ user `atlas_username` }}/{{ user `atlas_name` }}",
+                "artifact_type": "vagrant.box",
+                "metadata": {
+                    "provider": "virtualbox",
+                    "version": "1.0.0",
+                    "created_at": "{{ timestamp }}"
+                }
+      }
+    ]
+  ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "execute_command": "echo 'vagrant'|sudo -S sh '{{.Path}}'",
+            "override": {
+                "virtualbox-iso": {
+                    "scripts": [
+            "scripts/os.sh",
+            "scripts/base.sh",
+            "scripts/vagrant.sh",
+            "scripts/virtualbox.sh",
+            "scripts/cleanup.sh",
+            "scripts/zerodisk.sh"
+          ]
+                }
+            }
+    }
+  ],
+    "push": {
+        "name": "{{ user `atlas_username` }}/{{ user `atlas_name` }}",
+        "vcs": true
+    },
+    "variables": {
+        "atlas_username": "bstopp",
+        "atlas_name": "centos-7.1-nocm-aem",
+        "atlas_token": "{{ env `ATLAS_TOKEN` }}"
+    }
+}
