@@ -1,0 +1,13 @@
+---
+:backends:
+  - yaml
+:yaml:
+  :datadir: "/tmp/packer-puppet-masterless/hieradata/%{::environment}"
+:hierarchy:
+  - "nodes/%{::fqdn}"
+  - "virtual/%{::kernel}/%{::virtual}"
+  - "os/%{::operatingsystem}"
+  - "domain/%{::domain}"
+  - "common"
+:logger: console
+

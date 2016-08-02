@@ -1,0 +1,115 @@
+{
+  "description": "CentOS 7.2 64-bit (amd64/x86_64)",
+
+  "variables": {
+    "template_name": "centos-7.2-x64",
+    "template_os": "RedHat_64",
+
+    "iso_url": "http://mirror.chpc.utah.edu/pub/centos/7/isos/x86_64/CentOS-7-x86_64-DVD-1511.iso",
+    "iso_checksum": "907e5755f824c5848b9c8efbb484f3cd945e93faa024bad6ba875226f9683b16",
+    "iso_checksum_type": "sha256",
+
+    "memory_size": "512",
+    "cpu_count": "1",
+    "disk_size": "10240",
+
+    "purpose": "puppet",
+
+    "puppet_pkg": "puppetlabs-release-pc1-el-7.noarch.rpm",
+    "puppet_agent_ver": "1.5.3",
+    "puppet_module_path": "/tmp/packer-puppet-masterless/manifests/modules"
+  },
+
+  "builders": [
+    {
+      "name": "centos-7.2-x64-puppet",
+      "type": "virtualbox-iso",
+      "boot_command": [
+        "<tab> <wait>",
+        "text <wait>",
+        "ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.cfg<wait>",
+        "<enter>"
+      ],
+      "boot_wait": "10s",
+
+      "iso_url": "{{ user `iso_url` }}",
+      "iso_checksum": "{{ user `iso_checksum` }}",
+      "iso_checksum_type": "{{ user `iso_checksum_type` }}",
+      "disk_size": "{{ user `disk_size` }}",
+
+      "guest_os_type": "{{ user `template_os` }}",
+      "format": "ovf",
+      "http_directory": "http",
+      "ssh_username": "root",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "10000s",
+
+      "headless": true,
+      "shutdown_command": "/sbin/halt -h -p",
+      "virtualbox_version_file": ".vbox_version",
+      "vboxmanage": [
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--memory",
+          "{{ user `memory_size` }}"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--cpus",
+          "{{ user `cpu_count` }}"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--ioapic",
+          "on"
+        ]
+      ]
+    }
+  ],
+  "provisioners" : [
+    {
+      "type" : "shell",
+      "execute_command": "{{.Vars}} sh '{{.Path}}' {{ user `puppet_modules` }}",
+      "environment_vars": [
+        "PUPPET_PKG={{ user `puppet_pkg` }}",
+        "PUPPET_VER={{ user `puppet_agent_ver` }}",
+        "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
+      ],
+      "scripts": [
+        "../../scripts/setup/puppet-yum.sh"
+      ]
+    },
+    {
+      "type": "puppet-masterless",
+      "execute_command": "cd {{ .WorkingDir }} && {{ .FacterVars }} /opt/puppetlabs/bin/puppet apply --verbose --modulepath='{{ user `puppet_module_path` }}' --hiera_config='{{ .HieraConfigPath }}' --detailed-exitcodes {{ .ManifestFile }}",
+      "manifest_file": "../../puppet-data/manifests/site.pp",
+      "manifest_dir": "../../puppet-data/manifests",
+      "hiera_config_path": "../../puppet-data/hieradata/hiera.yaml"
+    },
+    {
+      "type" : "shell",
+      "execute_command": "{{.Vars}} sh '{{.Path}}'",
+      "environment_vars": [
+        "PUPPET_PKG={{ user `puppet_pkg` }}",
+        "PUPPET_VER={{ user `puppet_agent_ver` }}",
+        "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
+      ],
+      "scripts": [
+        "../../scripts/cleanup/os-yum.sh",
+        "../../scripts/cleanup/puppet.sh",
+        "../../scripts/cleanup/packer.sh",
+        "../../scripts/cleanup/disk.sh"
+      ]
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "vagrant",
+      "output": "../../boxes/{{user `template_name`}}-{{ user `purpose` }}.box"
+    }
+  ]
+}
