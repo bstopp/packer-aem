@@ -1,0 +1,133 @@
+{
+  "description": "Ubuntu 14.04 64-bit (amd64/x86_64)",
+
+  "variables": {
+    "template_name": "ubuntu-14-x86_64",
+    "template_os": "Ubuntu_64",
+
+
+    "iso_mirror": "http://mirror.pnl.gov/releases/14.04",
+    "iso_name": "ubuntu-14.04.5-server-amd64.iso",
+    "iso_checksum": "dde07d37647a1d2d9247e33f14e91acb10445a97578384896b4e1d985f754cc1",
+    "iso_checksum_type": "sha256",
+
+    "memory_size": "512",
+    "cpu_count": "1",
+    "disk_size": "10240",
+
+    "purpose": "puppet",
+
+    "puppet_pkg": "puppetlabs-release-pc1-trusty.deb",
+    "puppet_agent_ver": "1.5.3",
+    "puppet_module_path": "/tmp/packer-puppet-masterless/manifests/modules",
+    "puppet_modules": "puppetlabs-stdlib saz-sudo"
+  },
+
+  "builders": [
+    {
+      "name": "{{ user `template_name` }}-{{ user `purpose` }}",
+      "type": "virtualbox-iso",
+      "boot_command": [
+        "<esc><esc><enter><wait>",
+        "/install/vmlinuz auto <wait>",
+        "console-setup/ask_detect=false <wait>",
+        "console-setup/layoutcode=us <wait>",
+        "console-setup/modelcode=pc105 <wait>",
+        "debconf/frontend=noninteractive <wait>",
+        "debian-installer=en_US <wait>",
+        "fb=false <wait>",
+        "initrd=/install/initrd.gz <wait>",
+        "kbd-chooser/method=us <wait>",
+        "keyboard-configuration/layout=USA <wait>",
+        "keyboard-configuration/variant=USA <wait>",
+        "locale=en_US <wait>",
+        "netcfg/get_domain=vm <wait>",
+        "netcfg/get_hostname=localhost <wait>",
+        "noapic <wait>" ,
+        "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg <wait>",
+        "-- <wait>",
+        "<enter>"
+      ],
+      "boot_wait": "10s",
+
+      "iso_url": "{{ user `iso_mirror` }}/{{ user `iso_name` }}",
+      "iso_checksum": "{{ user `iso_checksum` }}",
+      "iso_checksum_type": "{{ user `iso_checksum_type` }}",
+      "disk_size": "{{ user `disk_size` }}",
+
+      "guest_os_type": "{{ user `template_os` }}",
+      "format": "ovf",
+      "http_directory": "http",
+      "ssh_username": "root",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "10000s",
+
+      "headless": true,
+      "shutdown_command": "/sbin/halt -h -p",
+      "virtualbox_version_file": ".vbox_version",
+      "vboxmanage": [
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--memory",
+          "{{ user `memory_size` }}"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--cpus",
+          "{{ user `cpu_count` }}"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--ioapic",
+          "off"
+        ]
+      ]
+    }
+  ],
+  "provisioners" : [
+    {
+      "type" : "shell",
+      "execute_command": "{{.Vars}} sh '{{.Path}}' {{ user `puppet_modules` }}",
+      "environment_vars": [
+        "PUPPET_PKG={{ user `puppet_pkg` }}",
+        "PUPPET_VER={{ user `puppet_agent_ver` }}",
+        "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
+      ],
+      "scripts": [
+        "../../scripts/setup/puppet-apt.sh"
+      ]
+    },
+    {
+      "type": "puppet-masterless",
+      "execute_command": "cd {{ .WorkingDir }} && {{ .FacterVars }} /opt/puppetlabs/bin/puppet apply --verbose --modulepath='{{ user `puppet_module_path` }}' --hiera_config='{{ .HieraConfigPath }}' --detailed-exitcodes {{ .ManifestFile }}",
+      "manifest_file": "../../puppet-data/manifests/site.pp",
+      "manifest_dir": "../../puppet-data/manifests",
+      "hiera_config_path": "../../puppet-data/hieradata/hiera.yaml"
+    },
+    {
+      "type" : "shell",
+      "execute_command": "{{.Vars}} sh '{{.Path}}'",
+      "environment_vars": [
+        "PUPPET_PKG={{ user `puppet_pkg` }}",
+        "PUPPET_VER={{ user `puppet_agent_ver` }}",
+        "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
+      ],
+      "scripts": [
+        "../../scripts/cleanup/os-apt.sh",
+        "../../scripts/cleanup/puppet-apt.sh",
+        "../../scripts/cleanup/packer.sh",
+        "../../scripts/cleanup/disk.sh"
+      ]
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "vagrant",
+      "output": "../../boxes/{{user `template_name`}}-{{ user `purpose` }}.box"
+    }
+  ]
+}

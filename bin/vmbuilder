@@ -1,0 +1,171 @@
+#!/usr/bin/env ruby
+
+$:.unshift(File.dirname(__FILE__))
+
+require 'erb'
+require 'httpclient'
+require 'yaml'
+require 'json'
+
+# URL API
+@url_base = 'https://vagrantcloud.com/api/v1'
+
+@username = ENV['ATLAS_USERNAME']
+@access_token = ENV['ATLAS_TOKEN']
+@client = HTTPClient.new(
+  {
+    :default_header => {
+      'X-Atlas-Token': @access_token
+    }
+  }
+)
+
+
+def main
+
+  config_file = File.expand_path(File.join('bin', 'atlas.yaml'))
+  config = YAML.load_file(config_file)
+
+  load_templates
+
+  config['boxes'].each do |box|
+
+
+    meta = metadata(box)
+
+    if (!meta)
+      create(box)
+    end
+    update(box)
+
+    if (!version?(box))
+      build(box)
+    end
+
+  end
+end
+
+def load_templates
+
+  short_desc_tpl = File.read(File.join('bin', "version.erb"))
+  @short_desc_render = ERB.new(short_desc_tpl, nil, '<>')
+  desc_tpl = File.read(File.join('bin', "description.erb"))
+  @description_render = ERB.new(desc_tpl, nil, '<>')
+
+end
+
+def metadata(box)
+
+  # Check if box exists
+  path = [
+    @url_base,
+    'box',
+    @username,
+    box['name']
+  ].join('/')
+
+  puts "Checking to see if box (#{box['name']}) exists."
+  begin
+    info = @client.get_content(path)
+    json = JSON.parse(info)
+  rescue HTTPClient::BadResponseError => e
+    json = nil
+  end
+
+  json
+end
+
+def create(box)
+
+  path = [
+    @url_base,
+    'boxes',
+  ].join('/')
+
+  body = {
+    'box[name]'       => box['name'],
+    'box[is_private]' => false,
+  }
+  puts "Creating box: #{box['name']}"
+
+  @client.post(path, body)
+end
+
+def update(box)
+
+  path = [
+    @url_base,
+    'box',
+    @username,
+    box['name']
+  ].join('/')
+
+  sdesc = box['os'] + ' ' + box['arch']
+
+  tpl_data = OpenStruct.new
+  tpl_data.name = box['name']
+  tpl_data.version = box['version']
+  tpl_data.os = box['os']
+  tpl_data.arch = box['arch']
+
+  desc = @description_render.result(tpl_data.instance_eval { binding })
+
+  puts 'Getting current box metadata.'
+  meta = @client.get_content(path)
+  meta_json = JSON.parse(meta)
+
+
+  if (!sdesc.eql?(meta_json['short_description']) ||
+      !desc.eql?(meta_json['description_markdown']) ||
+      meta_json['private'].eql?("true"))
+    puts "Updating box (#{box['name']}) descriptions."
+    body = {
+      'box[short_description]' => sdesc,
+      'box[description]'       =>  desc,
+      'box[is_private]'        => false,
+    }
+    resp = @client.put(path, body)
+  end
+  meta_json = JSON.parse(resp.body) if resp
+
+  meta_json
+end
+
+def version?(box)
+
+  path = [
+    @url_base,
+    'box',
+    @username,
+    box['name'],
+    'version',
+    box['version']
+  ].join('/')
+
+  begin
+    puts "Checking to see if box (#{box['name']}) version (#{box['version']}) exists."
+    @client.get_content(path)
+  rescue HTTPClient::BadResponseError => e
+    puts 'Version does not exist.'
+  end
+end
+
+def build(box)
+
+  puts "Running packer build for #{box['name']}"
+  cmd_env = {
+    "ATLAS_USERNAME"   => @username,
+    "VM_OS"            => box['os'],
+    "VM_ARCH"          => box['arch'],
+    "TPL_NAME"         => box['name'],
+    "VERSION"          => box['version'],
+    "DISK_SIZE"        => "#{box['disk_size']}",
+    "PACKER_CACHE_DIR" => File.join(Dir.pwd, 'packer_cache')
+  }
+
+  work_dir = File.join(Dir.pwd, box['template_dir'])
+  Kernel.system(cmd_env, 'packer build -force template.json', :chdir => work_dir )
+
+end
+
+main

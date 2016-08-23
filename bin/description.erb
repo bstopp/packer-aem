@@ -1,0 +1,19 @@
+### About
+
+This is a base **<%= os %> <%= arch %>** installation. This box is build and managed by [Bryan Stopp](https://github.com/bstopp). The primary purpose of this VM is to support testing of the [Puppet AEM module](https://github.com/bstopp/puppet-aem). It is also the default VMs used by the [Vagrant AEM](https://github.com/bstopp) project.
+
+There is no software pre-installed.
+
+### VM Settings
+
+* Disk size is set to 50G
+* `root` password is set to `vagrant`
+* `vagrant` account uses the [Vagrant project's insecure public key](https://github.com/mitchellh/vagrant/tree/master/keys)
+* a primary interface is configured, which maps to the default virtualized NAT network
+
+### Notes
+
+* version <%= version %>, see the [changelog](https://github.com/bstopp/packer-aem/tree/master/templates/<%= name %>/CHANGELOG for details
+* build with [Packer](http://packer.io/) using [Bryan's Git repository](https://github.com/bstopp/packer-aem/tree/master/templates/<%= name %>)
+
+If there are any issues, please use the [Github issue tracker](https://github.com/bstopp/packer-aem/issues)
