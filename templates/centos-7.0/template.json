@@ -1,9 +1,11 @@
 {
-  "description": "CentOS 7.0 64-bit (amd64/x86_64)",
+  "description": "{{ env `VM_OS` }} {{ env `VM_ARCH` }}",
 
   "variables": {
-    "template_name": "centos-7.0-x64",
+    "atlas_user": "{{ env `ATLAS_USERNAME` }}",
+    "template_name": "{{ env `TPL_NAME` }}",
     "template_os": "RedHat_64",
+    "version": "{{ env `VERSION` }}",
 
     "iso_url": "http://bay.uchicago.edu/centos-vault/7.0.1406/isos/x86_64/CentOS-7.0-1406-x86_64-DVD.iso",
     "iso_checksum": "ee505335bcd4943ffc7e6e6e55e5aaa8da09710b6ceecda82a5619342f1d24d9",
@@ -11,9 +13,7 @@
 
     "memory_size": "512",
     "cpu_count": "1",
-    "disk_size": "10240",
-
-    "purpose": "puppet",
+    "disk_size": "{{ env `DISK_SIZE` }}",
 
     "puppet_pkg": "puppetlabs-release-pc1-el-7.noarch.rpm",
     "puppet_agent_ver": "1.5.3",
@@ -24,7 +24,7 @@
 
   "builders": [
     {
-      "name": "centos-7.0-x64-puppet",
+      "name": "{{ user `template_name` }}",
       "type": "virtualbox-iso",
       "boot_command": [
         "<tab> <wait>",
@@ -109,9 +109,23 @@
     }
   ],
   "post-processors": [
-    {
-      "type": "vagrant",
-      "output": "../../boxes/{{user `template_name`}}-{{ user `purpose` }}.box"
-    }
+    [
+      {
+        "type": "vagrant",
+        "output": "../../boxes/{{user `template_name`}}.box"
+      },
+      {
+        "type": "atlas",
+        "artifact": "{{ user `atlas_user` }}/{{ user `template_name` }}",
+        "artifact_type": "vagrant.box",
+        "metadata": {
+          "provider": "virtualbox",
+          "version": "{{ user `version` }}",
+          "private": false,
+          "short description": "Test Short Description",
+          "description": "Test Long Description"
+        }
+      }
+    ]
   ]
 }

@@ -1,0 +1,23 @@
+---
+
+boxes:
+  - name: 'centos-7.0-x64'
+    version: '1.0.0'
+    os: 'CentOS 7.0'
+    arch: '64-bit (amd64/x86_64)'
+    template_dir: 'templates/centos-7.0'
+    disk_size: 51200
+#  - name: 'centos-7.2-x64'
+#    version: '1.0.0'
+#    os: 'CentOS 7.2'
+#    arch: '64-bit (amd64/x86_64)'
+#    template_dir: 'templates/centos-7.2'
+#    disk_size: 51200
+#  - name: 'debian-7-x64'
+#    version: '1.0.0'
+#    os: 'Debian 7'
+#    arch: '64-bit (amd64/x86_64)'
+#    template_dir: 'templates/debian-7'
+#    disk_size: 51200
+
+...

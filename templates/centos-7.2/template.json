@@ -1,9 +1,11 @@
 {
-  "description": "CentOS 7.2 64-bit (amd64/x86_64)",
+  "description": "{{ env `VM_OS` }} {{ env `VM_ARCH` }}",
 
   "variables": {
-    "template_name": "centos-7.2-64",
+    "atlas_user": "{{ env `ATLAS_USERNAME` }}",
+    "template_name": "{{ env `TPL_NAME` }}",
     "template_os": "RedHat_64",
+    "version": "{{ env `VERSION` }}",
 
     "iso_url": "http://mirror.chpc.utah.edu/pub/centos/7/isos/x86_64/CentOS-7-x86_64-DVD-1511.iso",
     "iso_checksum": "907e5755f824c5848b9c8efbb484f3cd945e93faa024bad6ba875226f9683b16",
@@ -11,9 +13,10 @@
 
     "memory_size": "512",
     "cpu_count": "1",
-    "disk_size": "10240",
+    "disk_size": "{{ env `DISK_SIZE` }}",
 
     "puppet_pkg": "puppetlabs-release-pc1-el-7.noarch.rpm",
+    "puppet_agent_ver": "1.5.3",
     "puppet_module_path": "/tmp/packer-puppet-masterless/manifests/modules",
     "puppet_modules": "puppetlabs-stdlib saz-sudo"
 
@@ -105,9 +108,23 @@
     }
   ],
   "post-processors": [
-    {
-      "type": "vagrant",
-      "output": "../../boxes/{{user `template_name`}}.box"
-    }
+    [
+      {
+        "type": "vagrant",
+        "output": "../../boxes/{{user `template_name`}}.box"
+      },
+      {
+        "type": "atlas",
+        "artifact": "{{ user `atlas_user` }}/{{ user `template_name` }}",
+        "artifact_type": "vagrant.box",
+        "metadata": {
+          "provider": "virtualbox",
+          "version": "{{ user `version` }}",
+          "private": false,
+          "short description": "Test Short Description",
+          "description": "Test Long Description"
+        }
+      }
+    ]
   ]
 }
