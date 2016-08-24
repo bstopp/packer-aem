@@ -8,3 +8,4 @@ script: bin/vmbuilder
 branches:
   only:
   - master
+  - newboxes
