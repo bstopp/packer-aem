@@ -145,6 +145,7 @@ def version?(box)
   begin
     puts "Checking to see if box (#{box['name']}) version (#{box['version']}) exists."
     @client.get_content(path)
+    puts 'Version exists, moving on.'
   rescue HTTPClient::BadResponseError => e
     puts 'Version does not exist.'
   end
