@@ -4,4 +4,6 @@ rvm:
 
 script: bin/vmbuilder
 
-
+branches:
+  only:
+  - master
