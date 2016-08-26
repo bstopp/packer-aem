@@ -7,7 +7,8 @@
     "template_os": "RedHat_64",
     "version": "{{ env `VERSION` }}",
 
-    "iso_url": "http://mirror.chpc.utah.edu/pub/centos/7/isos/x86_64/CentOS-7-x86_64-DVD-1511.iso",
+    "iso_mirror": "http://mirror.chpc.utah.edu/pub/centos/7/isos/x86_64",
+    "iso_name": "CentOS-7-x86_64-DVD-1511.iso",
     "iso_checksum": "907e5755f824c5848b9c8efbb484f3cd945e93faa024bad6ba875226f9683b16",
     "iso_checksum_type": "sha256",
 
@@ -19,7 +20,6 @@
     "puppet_agent_ver": "1.5.3",
     "puppet_module_path": "/tmp/packer-puppet-masterless/manifests/modules",
     "puppet_modules": "puppetlabs-stdlib saz-sudo"
-
   },
 
   "builders": [
@@ -34,7 +34,7 @@
       ],
       "boot_wait": "10s",
 
-      "iso_url": "{{ user `iso_url` }}",
+      "iso_url": "{{ user `iso_mirror` }}/{{ user `iso_name` }}",
       "iso_checksum": "{{ user `iso_checksum` }}",
       "iso_checksum_type": "{{ user `iso_checksum_type` }}",
       "disk_size": "{{ user `disk_size` }}",
@@ -120,9 +120,7 @@
         "metadata": {
           "provider": "virtualbox",
           "version": "{{ user `version` }}",
-          "private": false,
-          "short description": "Test Short Description",
-          "description": "Test Long Description"
+          "private": false
         }
       }
     ]

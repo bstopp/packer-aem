@@ -1,10 +1,11 @@
 {
-  "description": "Ubuntu 14.04 64-bit (amd64/x86_64)",
+  "description": "{{ env `VM_OS` }} {{ env `VM_ARCH` }}",
 
   "variables": {
-    "template_name": "ubuntu-14-x86_64",
+    "atlas_user": "{{ env `ATLAS_USERNAME` }}",
+    "template_name": "{{ env `TPL_NAME` }}",
     "template_os": "Ubuntu_64",
-
+    "version": "{{ env `VERSION` }}",
 
     "iso_mirror": "http://mirror.pnl.gov/releases/14.04",
     "iso_name": "ubuntu-14.04.5-server-amd64.iso",
@@ -13,9 +14,7 @@
 
     "memory_size": "512",
     "cpu_count": "1",
-    "disk_size": "10240",
-
-    "purpose": "puppet",
+    "disk_size": "{{ env `DISK_SIZE` }}",
 
     "puppet_pkg": "puppetlabs-release-pc1-trusty.deb",
     "puppet_agent_ver": "1.5.3",
@@ -25,7 +24,7 @@
 
   "builders": [
     {
-      "name": "{{ user `template_name` }}-{{ user `purpose` }}",
+      "name": "{{ user `template_name` }}",
       "type": "virtualbox-iso",
       "boot_command": [
         "<esc><esc><enter><wait>",
@@ -94,7 +93,6 @@
       "execute_command": "{{.Vars}} sh '{{.Path}}' {{ user `puppet_modules` }}",
       "environment_vars": [
         "PUPPET_PKG={{ user `puppet_pkg` }}",
-        "PUPPET_VER={{ user `puppet_agent_ver` }}",
         "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
       ],
       "scripts": [
@@ -125,9 +123,21 @@
     }
   ],
   "post-processors": [
-    {
-      "type": "vagrant",
-      "output": "../../boxes/{{user `template_name`}}-{{ user `purpose` }}.box"
-    }
+    [
+      {
+        "type": "vagrant",
+        "output": "../../boxes/{{user `template_name`}}.box"
+      },
+      {
+        "type": "atlas",
+        "artifact": "{{ user `atlas_user` }}/{{ user `template_name` }}",
+        "artifact_type": "vagrant.box",
+        "metadata": {
+          "provider": "virtualbox",
+          "version": "{{ user `version` }}",
+          "private": false
+        }
+      }
+    ]
   ]
 }

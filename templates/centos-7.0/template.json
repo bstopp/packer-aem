@@ -7,7 +7,8 @@
     "template_os": "RedHat_64",
     "version": "{{ env `VERSION` }}",
 
-    "iso_url": "http://bay.uchicago.edu/centos-vault/7.0.1406/isos/x86_64/CentOS-7.0-1406-x86_64-DVD.iso",
+    "iso_mirror": "http://bay.uchicago.edu/centos-vault/7.0.1406/isos/x86_64",
+    "iso_name": "CentOS-7.0-1406-x86_64-DVD.iso",
     "iso_checksum": "ee505335bcd4943ffc7e6e6e55e5aaa8da09710b6ceecda82a5619342f1d24d9",
     "iso_checksum_type": "sha256",
 
@@ -19,7 +20,6 @@
     "puppet_agent_ver": "1.5.3",
     "puppet_module_path": "/tmp/packer-puppet-masterless/manifests/modules",
     "puppet_modules": "puppetlabs-stdlib saz-sudo"
-
   },
 
   "builders": [
@@ -34,7 +34,7 @@
       ],
       "boot_wait": "10s",
 
-      "iso_url": "{{ user `iso_url` }}",
+      "iso_url": "{{ user `iso_mirror` }}/{{ user `iso_name` }}",
       "iso_checksum": "{{ user `iso_checksum` }}",
       "iso_checksum_type": "{{ user `iso_checksum_type` }}",
       "disk_size": "{{ user `disk_size` }}",
@@ -78,7 +78,6 @@
       "execute_command": "{{.Vars}} sh '{{.Path}}' {{ user `puppet_modules` }}",
       "environment_vars": [
         "PUPPET_PKG={{ user `puppet_pkg` }}",
-        "PUPPET_VER={{ user `puppet_agent_ver` }}",
         "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
       ],
       "scripts": [
@@ -121,9 +120,7 @@
         "metadata": {
           "provider": "virtualbox",
           "version": "{{ user `version` }}",
-          "private": false,
-          "short description": "Test Short Description",
-          "description": "Test Long Description"
+          "private": false
         }
       }
     ]
