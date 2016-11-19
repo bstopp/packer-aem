@@ -1,0 +1,2 @@
+profiles::vmtools::tools-iso: 'VBoxGuestAdditions.iso'
+profiles::vmtools::install-cmd: 'sh /tmp/vmtools/VBoxLinuxAdditions.run --nox11'

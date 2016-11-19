@@ -16,9 +16,10 @@
     "cpu_count": "1",
     "disk_size": "{{ env `DISK_SIZE` }}",
 
+    "provider" : "virtualbox",
+
     "puppet_pkg": "puppetlabs-release-pc1-el-7.noarch.rpm",
-    "puppet_agent_ver": "1.5.3",
-    "puppet_module_path": "/tmp/packer-puppet-masterless/manifests/modules",
+    "puppet_module_path": "/tmp/packer-puppet-masterless/modules",
     "puppet_modules": "puppetlabs-stdlib saz-sudo"
   },
 
@@ -85,18 +86,30 @@
       ]
     },
     {
+      "type": "file",
+      "source": "../../puppet-data/hieradata",
+      "destination": "/tmp/packer-puppet-masterless"
+    },
+    {
+      "type": "file",
+      "source": "../../puppet-data/modules",
+      "destination": "/tmp/packer-puppet-masterless"
+    },
+    {
       "type": "puppet-masterless",
       "execute_command": "cd {{ .WorkingDir }} && {{ .FacterVars }} /opt/puppetlabs/bin/puppet apply --verbose --modulepath='{{ user `puppet_module_path` }}' --hiera_config='{{ .HieraConfigPath }}' --detailed-exitcodes {{ .ManifestFile }}",
-      "manifest_file": "../../puppet-data/manifests/site.pp",
+      "facter": {
+        "provider": "{{ user `provider` }}"
+      },
+      "hiera_config_path": "../../puppet-data/hieradata/hiera.yaml",
       "manifest_dir": "../../puppet-data/manifests",
-      "hiera_config_path": "../../puppet-data/hieradata/hiera.yaml"
+      "manifest_file": "../../puppet-data/manifests/base.pp"
     },
     {
       "type" : "shell",
       "execute_command": "{{.Vars}} sh '{{.Path}}'",
       "environment_vars": [
         "PUPPET_PKG={{ user `puppet_pkg` }}",
-        "PUPPET_VER={{ user `puppet_agent_ver` }}",
         "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
       ],
       "scripts": [
@@ -111,7 +124,7 @@
     [
       {
         "type": "vagrant",
-        "output": "../../boxes/{{user `template_name`}}.box"
+        "output": "../../boxes/{{ user `template_name` }}-{{ user `provider` }}.box"
       },
       {
         "type": "atlas",

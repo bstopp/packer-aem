@@ -1,0 +1,9 @@
+profiles::vmtools::root-home: '/root'
+update_packages:
+  - libc6
+  - openssh-client
+  - openssh-server
+  - gcc
+  - make
+  - "linux-headers-%{::kernelrelease}"
+

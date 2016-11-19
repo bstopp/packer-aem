@@ -1,0 +1,7 @@
+profiles::vmtools::root-home: '/root'
+update_packages:
+  - glibc
+  - openssh
+  - gcc
+  - make
+  - linux-headers-${::kernelrelease}

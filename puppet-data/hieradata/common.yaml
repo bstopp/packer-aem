@@ -1,0 +1,25 @@
+classes:
+  - sudo
+
+update_packages:
+  - bash
+  - openssl
+
+groups:
+  'vagrant':
+    ensure: 'present'
+
+users:
+  'vagrant':
+    ensure: 'present'
+    gid: 'vagrant'
+    home: '/home/vagrant'
+    shell: '/bin/bash'
+    managehome: true
+
+files:
+  '/home/vagrant/.ssh':
+    ensure: 'directory'
+    owner: 'vagrant'
+    group: 'vagrant'
+    mode: '0600'

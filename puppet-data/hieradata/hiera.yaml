@@ -2,12 +2,10 @@
 :backends:
   - yaml
 :yaml:
-  :datadir: "/tmp/packer-puppet-masterless/hieradata/%{::environment}"
+  :datadir: "/tmp/packer-puppet-masterless/hieradata"
 :hierarchy:
-  - "nodes/%{::fqdn}"
-  - "virtual/%{::kernel}/%{::virtual}"
-  - "os/%{::operatingsystem}"
-  - "domain/%{::domain}"
+  - "provider/%{::provider}"
+  - "os/%{::osfamily}"
   - "common"
 :logger: console
 

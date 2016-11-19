@@ -2,16 +2,53 @@
 
 $:.unshift(File.dirname(__FILE__))
 
+require 'optparse'
 require 'erb'
-require 'httpclient'
 require 'yaml'
 require 'json'
+require 'httpclient'
 
 # URL API
 @url_base = 'https://vagrantcloud.com/api/v1'
+@debug = ''
+@logging = ''
 
-@username = ENV['ATLAS_USERNAME']
-@access_token = ENV['ATLAS_TOKEN']
+OptionParser.new do |opts|
+  opts.banner = 'Usage: vmbuilder [options]'
+
+  opts.on('-nNAME', '--name=NAME', 'Specify Atlas username.') do |n|
+    @username = n
+  end
+
+  opts.on('-aTOKEN', '--atlas=TOKEN', 'Specify Atlas Token.') do |a|
+    @access_token = a
+  end
+
+  opts.on('-bBOX', '--box=BOX', 'Specify which box to build.') do |b|
+    @box = b
+  end
+
+  opts.on('-pPROVIDER', '--provider=PROVIDER', 'Specify which virtualization provider to build.') do |p|
+    @provider = p
+  end
+
+  opts.on('-d', '--debug', 'Run packer in debug mode.') do
+    @debug = '-debug'
+  end
+
+  opts.on('-l', '--logging', 'Run packer verbose logging mode.') do
+    @logging = 'PACKER_LOG=1'
+  end
+
+
+  opts.on('-t', '--test', 'Run as a test, do not upload to Atlas') do |t|
+    @test = true;
+  end
+
+end.parse!
+
+@username = @username || ENV['ATLAS_USERNAME']
+@access_token = @access_token ||  ENV['ATLAS_TOKEN']
 @client = HTTPClient.new(
   {
     :default_header => {
@@ -19,6 +56,7 @@ require 'json'
     }
   }
 )
+
 
 
 def main
@@ -30,27 +68,34 @@ def main
 
   config['boxes'].each do |box|
 
-    puts "Running for box: #{box['name']} version: #{box['version']}"
+    next if @box && !box['name'].eql?(@box)
 
-    puts "    Checking to see if box exists."
-    meta = get_metadata(box)
-
-    if (!meta)
-      puts '    Box does not exist, creating.'
-      create(box)
-    end
-    puts '    Checking/updating box metadata.'
-    update(box)
-
-    puts '    Checking to see if version exists.'
-    if (!version?(box))
-      puts '    Version does not exist, running packer.'
+    if @test
+      puts "Test run for box #{box['name']} version: #{box['version']}"
       build(box)
+    else
+      puts "Running release for box: #{box['name']} version: #{box['version']}"
+
+      puts '    Checking to see if box exists.'
+      meta = get_metadata(box)
+
+      if (!meta)
+        puts '    Box does not exist, creating.'
+        create(box)
+      end
+      puts '    Checking/updating box metadata.'
+      update(box)
+
+      puts '    Checking to see if version exists.'
+      if (!version?(box))
+        puts '    Version does not exist, running packer.'
+        build(box)
+      end
+      puts '    Checking/updating version metadata.'
+      update_version(box)
+      puts '    Checking/releasing version.'
+      release(box)
     end
-    puts '    Checking/updating version metadata.'
-    update_version(box)
-    puts '    Checking/releasing version.'
-    release(box)
   end
 end
 
@@ -154,18 +199,24 @@ end
 
 def build(box)
 
-  cmd_env = {
-    "ATLAS_USERNAME"   => @username,
-    "VM_OS"            => box['os'],
-    "VM_ARCH"          => box['arch'],
-    "TPL_NAME"         => box['name'],
-    "VERSION"          => box['version'],
-    "DISK_SIZE"        => "#{box['disk_size']}",
-    "PACKER_CACHE_DIR" => File.join(Dir.pwd, 'packer_cache')
-  }
+  box['provider'].each do | provider |
 
-  work_dir = File.join(Dir.pwd, box['template_dir'])
-  Kernel.system(cmd_env, 'packer build -force template.json', :chdir => work_dir )
+    next if @provider && !provider.eql?(@provider)
+
+    cmd_env = {
+      "ATLAS_USERNAME"   => @username,
+      "VM_OS"            => box['os'],
+      "VM_ARCH"          => box['arch'],
+      "TPL_NAME"         => box['name'],
+      "VERSION"          => box['version'],
+      "DISK_SIZE"        => "#{box['disk_size']}",
+      "PACKER_CACHE_DIR" => File.join(Dir.pwd, 'packer_cache')
+    }
+
+    work_dir = File.join(Dir.pwd, box['template_dir'])
+    Kernel.system(cmd_env, "#{@logging} packer build #{@debug} -force template.#{provider}.json", :chdir => work_dir )
+
+  end
 
 end
 

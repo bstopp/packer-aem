@@ -4,21 +4,22 @@
   "variables": {
     "atlas_user": "{{ env `ATLAS_USERNAME` }}",
     "template_name": "{{ env `TPL_NAME` }}",
-    "template_os": "RedHat_64",
+    "template_os": "Ubuntu_64",
     "version": "{{ env `VERSION` }}",
 
-    "iso_mirror": "http://bay.uchicago.edu/centos-vault/7.0.1406/isos/x86_64",
-    "iso_name": "CentOS-7.0-1406-x86_64-DVD.iso",
-    "iso_checksum": "ee505335bcd4943ffc7e6e6e55e5aaa8da09710b6ceecda82a5619342f1d24d9",
+    "iso_mirror": "http://mirror.pnl.gov/releases/14.04",
+    "iso_name": "ubuntu-14.04.5-server-amd64.iso",
+    "iso_checksum": "dde07d37647a1d2d9247e33f14e91acb10445a97578384896b4e1d985f754cc1",
     "iso_checksum_type": "sha256",
 
     "memory_size": "512",
     "cpu_count": "1",
     "disk_size": "{{ env `DISK_SIZE` }}",
 
-    "puppet_pkg": "puppetlabs-release-pc1-el-7.noarch.rpm",
-    "puppet_agent_ver": "1.5.3",
-    "puppet_module_path": "/tmp/packer-puppet-masterless/manifests/modules",
+    "provider" : "virtualbox",
+
+    "puppet_pkg": "puppetlabs-release-pc1-trusty.deb",
+    "puppet_module_path": "/tmp/packer-puppet-masterless/modules",
     "puppet_modules": "puppetlabs-stdlib saz-sudo"
   },
 
@@ -27,9 +28,24 @@
       "name": "{{ user `template_name` }}",
       "type": "virtualbox-iso",
       "boot_command": [
-        "<tab> <wait>",
-        "text <wait>",
-        "ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.cfg<wait>",
+        "<esc><esc><enter><wait>",
+        "/install/vmlinuz auto <wait>",
+        "console-setup/ask_detect=false <wait>",
+        "console-setup/layoutcode=us <wait>",
+        "console-setup/modelcode=pc105 <wait>",
+        "debconf/frontend=noninteractive <wait>",
+        "debian-installer=en_US <wait>",
+        "fb=false <wait>",
+        "initrd=/install/initrd.gz <wait>",
+        "kbd-chooser/method=us <wait>",
+        "keyboard-configuration/layout=USA <wait>",
+        "keyboard-configuration/variant=USA <wait>",
+        "locale=en_US <wait>",
+        "netcfg/get_domain=vm <wait>",
+        "netcfg/get_hostname=localhost <wait>",
+        "noapic <wait>" ,
+        "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg <wait>",
+        "-- <wait>",
         "<enter>"
       ],
       "boot_wait": "10s",
@@ -67,7 +83,7 @@
           "modifyvm",
           "{{ .Name }}",
           "--ioapic",
-          "on"
+          "off"
         ]
       ]
     }
@@ -81,27 +97,39 @@
         "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
       ],
       "scripts": [
-        "../../scripts/setup/puppet-yum.sh"
+        "../../scripts/setup/puppet-apt.sh"
       ]
+    },
+    {
+      "type": "file",
+      "source": "../../puppet-data/hieradata",
+      "destination": "/tmp/packer-puppet-masterless"
+    },
+    {
+      "type": "file",
+      "source": "../../puppet-data/modules",
+      "destination": "/tmp/packer-puppet-masterless"
     },
     {
       "type": "puppet-masterless",
       "execute_command": "cd {{ .WorkingDir }} && {{ .FacterVars }} /opt/puppetlabs/bin/puppet apply --verbose --modulepath='{{ user `puppet_module_path` }}' --hiera_config='{{ .HieraConfigPath }}' --detailed-exitcodes {{ .ManifestFile }}",
-      "manifest_file": "../../puppet-data/manifests/site.pp",
+      "facter": {
+        "provider": "{{ user `provider` }}"
+      },
+      "hiera_config_path": "../../puppet-data/hieradata/hiera.yaml",
       "manifest_dir": "../../puppet-data/manifests",
-      "hiera_config_path": "../../puppet-data/hieradata/hiera.yaml"
+      "manifest_file": "../../puppet-data/manifests/base.pp"
     },
     {
       "type" : "shell",
       "execute_command": "{{.Vars}} sh '{{.Path}}'",
       "environment_vars": [
         "PUPPET_PKG={{ user `puppet_pkg` }}",
-        "PUPPET_VER={{ user `puppet_agent_ver` }}",
         "PUPPET_MODULE_PATH={{ user `puppet_module_path` }}"
       ],
       "scripts": [
-        "../../scripts/cleanup/os-yum.sh",
-        "../../scripts/cleanup/puppet-yum.sh",
+        "../../scripts/cleanup/os-apt.sh",
+        "../../scripts/cleanup/puppet-apt.sh",
         "../../scripts/cleanup/packer.sh",
         "../../scripts/cleanup/disk.sh"
       ]
@@ -111,7 +139,7 @@
     [
       {
         "type": "vagrant",
-        "output": "../../boxes/{{user `template_name`}}.box"
+        "output": "../../boxes/{{ user `template_name` }}-{{ user `provider` }}.box"
       },
       {
         "type": "atlas",
