@@ -3,8 +3,8 @@ hiera_include('classes')
 
 $pkgs_to_update = hiera_array('update_packages')
 
-package {
-  $pkgs_to_update: ensure => latest;
+package { $pkgs_to_update :
+  ensure => latest;
 }
 
 $groups = hiera_hash('groups') | $key | { "Key '${key}' not found" }
